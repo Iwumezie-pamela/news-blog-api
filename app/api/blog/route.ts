@@ -62,20 +62,38 @@ export async function GET(req: Request) {
       where: {
         authorId: user.userId,
       },
-      include: {
+      select: {
         // like: {
         //   select: {
         //     id: true, // Select the ID of the like
         //   },
         // },
-        like: true,
+        // like: true,
+        id: true,
+        title: true,
+        content: true,
+        createdAt: true,
+        author: {
+          select: {
+            firstName: true,
+          },
+        },
+        _count: {
+          select: {
+            like: true,
+          },
+        },
       },
     });
 
     const postsWithLikeCount = posts.map((post) => ({
-      ...post,
+      id: post.id,
+      title: post.title,
+      content: post.content,
+      createdAt: post.createdAt,
+      author: post.author.firstName,
       //   likeCount: post.like.length, // Count likes for each post
-      like: post.like.length, // Count likes for each post
+      like: post._count.like, // Count likes for each post
     }));
 
     return NextResponse.json(postsWithLikeCount);
