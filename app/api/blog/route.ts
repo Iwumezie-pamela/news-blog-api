@@ -27,6 +27,23 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
+    // Check if title exist
+    const existingTitle = await prisma.blog.findFirst({
+      where: {
+        title: body.title,
+        authorId: user.userId,
+      },
+    });
+
+    if (existingTitle) {
+      return NextResponse.json(
+        {
+          message:
+            'You have already used this title. Please choose a different one.',
+        },
+        { status: 400 }
+      );
+    }
 
     // Create the new blog post in the database
     const newBlog = await prisma.blog.create({
@@ -63,12 +80,6 @@ export async function GET(req: Request) {
         authorId: user.userId,
       },
       select: {
-        // like: {
-        //   select: {
-        //     id: true, // Select the ID of the like
-        //   },
-        // },
-        // like: true,
         id: true,
         title: true,
         content: true,
@@ -76,6 +87,7 @@ export async function GET(req: Request) {
         author: {
           select: {
             firstName: true,
+            lastName: true,
           },
         },
         _count: {
@@ -91,8 +103,7 @@ export async function GET(req: Request) {
       title: post.title,
       content: post.content,
       createdAt: post.createdAt,
-      author: post.author.firstName,
-      //   likeCount: post.like.length, // Count likes for each post
+      author: `${post.author.firstName} ${post.author.lastName}`,
       like: post._count.like, // Count likes for each post
     }));
 

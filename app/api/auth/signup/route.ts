@@ -39,6 +39,13 @@ export async function POST(request: Request) {
         firstName,
         lastName
       },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        createdAt: true,
+      }
     });
 
     return NextResponse.json( newUser , { status: 201 });

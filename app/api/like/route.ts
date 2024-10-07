@@ -35,18 +35,44 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'Post not found.' }, { status: 404 });
     }
 
-    // Create a new like record
-    await prisma.like.create({
-      data: {
-        authorId: user.userId,
-        blogId: blogId,
+    // Check if the post is already liked by the user
+    const existingLike = await prisma.like.findUnique({
+      where: {
+        authorId_blogId: {
+          authorId: user.userId,
+          blogId: blogId,
+        },
       },
     });
 
-    return NextResponse.json(
-      { message: 'Post liked successfully.' },
-      { status: 201 }
-    );
+    if (existingLike) {
+      // If the post is already liked, remove the like (unlike)
+      await prisma.like.delete({
+        where: {
+          authorId_blogId: {
+            authorId: user.userId,
+            blogId: blogId,
+          },
+        },
+      });
+      return NextResponse.json(
+        { message: 'Post unliked successfully.' },
+        { status: 200 }
+      );
+    } else {
+      // Create a new like record
+      await prisma.like.create({
+        data: {
+          authorId: user.userId,
+          blogId: blogId,
+        },
+      });
+
+      return NextResponse.json(
+        { message: 'Post liked successfully.' },
+        { status: 201 }
+      );
+    }
   } catch (error) {
     console.error('Error liking post:', error);
     return NextResponse.json(
