@@ -3,11 +3,15 @@ import { verifyToken } from '@/utils/auth';
 import { NextResponse } from 'next/server';
 
 // api to fetch all users
-export async function GET(request: Request) {
+export async function GET(req: Request) {
   try {
-    const user = verifyToken(request);
-    if (typeof user === 'string') {
-      return NextResponse.json({ message: user }, { status: 401 });
+    const verificationResult = await verifyToken(req);
+
+    if (!verificationResult.success) {
+      return NextResponse.json(
+        { message: verificationResult.errorMessage },
+        { status: 401 }
+      );
     }
 
     const users = await prisma.user.findMany({

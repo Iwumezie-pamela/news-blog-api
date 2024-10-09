@@ -10,15 +10,21 @@ export async function PUT(
   try {
     const body: BlogRequest = await request.json();
 
-    const user = await verifyToken(request);
+    const verificationResult = await verifyToken(request);
 
-    if (typeof user === 'string') {
-      return NextResponse.json({ message: user }, { status: 401 });
+    if (!verificationResult.success) {
+      return NextResponse.json(
+        { message: verificationResult.errorMessage },
+        { status: 401 }
+      );
     }
     const blogPost = await prisma.blog.findUnique({
       where: {
         id: params.id,
-        authorId: user.userId,
+        authorId: verificationResult.data?.userId,
+      },
+      include: {
+        collaborators: true,
       },
     });
     if (!blogPost) {
@@ -28,13 +34,30 @@ export async function PUT(
       );
     }
 
+    const existingCollaboratorIds = blogPost.collaborators.map((collaborator) => collaborator.id); // Current collaborator IDs
+    const newCollaboratorIds = body.collaborators || []; // New collaborators from request body
+
+    // Determine collaborators to connect and disconnect
+    const collaboratorsToConnect = newCollaboratorIds
+      .filter((id) => !existingCollaboratorIds.includes(id))
+      .map((id) => ({ id }));
+    const collaboratorsToDisconnect = existingCollaboratorIds
+      .filter((id) => !newCollaboratorIds.includes(id))
+      .map((id) => ({ id }));
+
     // Update the blog post
     await prisma.blog.update({
       where: {
         id: params.id,
-        authorId: user.userId,
+        authorId: verificationResult.data?.userId,
       },
-      data: body,
+      data: {
+        ...body,
+        collaborators: {
+          connect: collaboratorsToConnect,
+          disconnect: collaboratorsToDisconnect,
+        },
+      },
     });
 
     return NextResponse.json({ message: 'Blog updated sucessfully' });
@@ -53,16 +76,19 @@ export async function DELETE(
 ) {
   try {
     // Verify the access token and extract user data
-    const user = await verifyToken(req);
+    const verificationResult = await verifyToken(req);
 
-    if (typeof user === 'string') {
-      return NextResponse.json({ message: user }, { status: 401 });
+    if (!verificationResult.success) {
+      return NextResponse.json(
+        { message: verificationResult.errorMessage },
+        { status: 401 }
+      );
     }
 
     const blogPost = await prisma.blog.findUnique({
       where: {
         id: params.id,
-        authorId: user.userId,
+        authorId: verificationResult.data?.userId,
       },
     });
     if (!blogPost) {
@@ -76,7 +102,7 @@ export async function DELETE(
     await prisma.blog.delete({
       where: {
         id: params.id,
-        authorId: user.userId,
+        authorId: verificationResult.data?.userId,
       },
     });
 

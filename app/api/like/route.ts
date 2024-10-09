@@ -7,11 +7,14 @@ import { NextResponse } from 'next/server';
 export async function POST(request: Request) {
   try {
     // Verify the access token and extract user data
-    const user = await verifyToken(request);
+    const verificationResult = await verifyToken(request);
 
-    if (typeof user === 'string') {
-      return NextResponse.json({ message: user }, { status: 401 });
-    }
+   if (!verificationResult.success) {
+     return NextResponse.json(
+       { message: verificationResult.errorMessage },
+       { status: 401 }
+     );
+   }
 
     // get blog post id from url
     const { searchParams } = new URL(request.url);
@@ -39,7 +42,7 @@ export async function POST(request: Request) {
     const existingLike = await prisma.like.findUnique({
       where: {
         authorId_blogId: {
-          authorId: user.userId,
+          authorId: verificationResult.data?.userId as string,
           blogId: blogId,
         },
       },
@@ -50,7 +53,7 @@ export async function POST(request: Request) {
       await prisma.like.delete({
         where: {
           authorId_blogId: {
-            authorId: user.userId,
+            authorId: verificationResult.data?.userId as string,
             blogId: blogId,
           },
         },
@@ -63,7 +66,7 @@ export async function POST(request: Request) {
       // Create a new like record
       await prisma.like.create({
         data: {
-          authorId: user.userId,
+          authorId: verificationResult.data?.userId as string,
           blogId: blogId,
         },
       });

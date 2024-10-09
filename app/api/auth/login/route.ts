@@ -32,7 +32,7 @@ export async function POST(req: Request) {
     }
 
     // Log the JWT_SECRET for debugging
-    console.log('JWT_SECRET:', process.env.JWT_SECRET);
+    // console.log('JWT_SECRET:', process.env.JWT_SECRET);
 
     const token = jwt.sign(
       { userId: user.id, email: user.email },

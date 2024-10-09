@@ -7,14 +7,13 @@ import { NextResponse } from 'next/server';
 export async function POST(req: Request) {
   try {
     // Verify the access token and extract user data
-    const user = await verifyToken(req);
+    const verificationResult = await verifyToken(req);
 
-    // If token verification fails, return an unauthorized response
     /**
      * If user is not a string, it means the token is valid, and we can continue processing the request normally (e.g., creating the blog post with user.userId).
      */
-    if (typeof user === 'string') {
-      return NextResponse.json({ message: user }, { status: 401 });
+    if (!verificationResult.success) {
+      return NextResponse.json({ message: verificationResult.errorMessage }, { status: 401 });
     }
 
     // Parse and validate the request body
@@ -31,7 +30,7 @@ export async function POST(req: Request) {
     const existingTitle = await prisma.blog.findFirst({
       where: {
         title: body.title,
-        authorId: user.userId,
+        authorId: verificationResult.data?.userId,
       },
     });
 
@@ -45,11 +44,29 @@ export async function POST(req: Request) {
       );
     }
 
+    // Add the collaborator IDs if any are provided
+    const collaborators = body.collaborators
+      ? body.collaborators.map((id) => ({ id })) // Wrap each collaborator ID in an object
+      : [];
+
     // Create the new blog post in the database
     const newBlog = await prisma.blog.create({
       data: {
         ...body,
-        authorId: user.userId,
+        authorId: verificationResult.data?.userId as string,
+        collaborators: {
+          connect: collaborators,
+        },
+      },
+      include: {
+        collaborators: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
       },
     });
 
@@ -68,16 +85,20 @@ export async function POST(req: Request) {
 export async function GET(req: Request) {
   try {
     // Verify the access token and extract user data
-    const user = await verifyToken(req);
+    // Verify the access token and extract user data
+    const verificationResult = await verifyToken(req);
 
     // If token verification fails, return an unauthorized response
-    if (typeof user === 'string') {
-      return NextResponse.json({ message: user }, { status: 401 });
+    if (!verificationResult.success) {
+      return NextResponse.json(
+        { message: verificationResult.errorMessage },
+        { status: 401 }
+      );
     }
 
     const posts = await prisma.blog.findMany({
       where: {
-        authorId: user.userId,
+        authorId: verificationResult.data?.userId,
       },
       select: {
         id: true,
@@ -88,6 +109,14 @@ export async function GET(req: Request) {
           select: {
             firstName: true,
             lastName: true,
+          },
+        },
+        collaborators: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
           },
         },
         _count: {
@@ -105,6 +134,7 @@ export async function GET(req: Request) {
       createdAt: post.createdAt,
       author: `${post.author.firstName} ${post.author.lastName}`,
       like: post._count.like, // Count likes for each post
+      collaborators: post.collaborators,
     }));
 
     return NextResponse.json(postsWithLikeCount);

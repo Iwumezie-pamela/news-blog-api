@@ -14,37 +14,39 @@ datasource db {
 }
 
 model User {
-    id          String    @id @default(cuid())
+    id             String    @id @default(cuid())
     // userId      String?   @unique
-    email       String    @unique
-    firstName   String?
-    lastName    String?
-    accessToken String?   @db.LongText
-    password    String
-    expiresIn   DateTime?
-    blogs       Blog[]
-    like Like[]
-    createdAt   DateTime  @default(now())
-    updatedAt   DateTime  @updatedAt
+    email          String    @unique
+    firstName      String?
+    lastName       String?
+    accessToken    String?   @db.LongText
+    password       String
+    expiresIn      DateTime?
+    blogs          Blog[]
+    like           Like[]
+    collaborations Blog[]    @relation("BlogCollaborators")
+    createdAt      DateTime  @default(now())
+    updatedAt      DateTime  @updatedAt
 }
 
 model Blog {
-    id        String   @id @default(cuid())
-    title     String
-    content   String
-    authorId  String
-    author    User     @relation(fields: [authorId], references: [id])
-    like Like[]
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+    id            String   @id @default(cuid())
+    title         String
+    content       String
+    authorId      String
+    author        User     @relation(fields: [authorId], references: [id])
+    like          Like[]
+    collaborators User[]   @relation("BlogCollaborators")
+    createdAt     DateTime @default(now())
+    updatedAt     DateTime @updatedAt
 }
 
 model Like {
-    id     String @id @default(cuid())
+    id       String @id @default(cuid())
     authorId String
-    blogId String
-    author User   @relation(fields: [authorId], references: [id])
-    blog   Blog   @relation(fields: [blogId], references: [id])
+    blogId   String
+    author   User   @relation(fields: [authorId], references: [id])
+    blog     Blog   @relation(fields: [blogId], references: [id])
 
     @@unique([authorId, blogId]) // Ensure a user can only like a post once
 }
