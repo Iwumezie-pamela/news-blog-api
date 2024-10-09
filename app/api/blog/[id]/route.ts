@@ -3,6 +3,64 @@ import { prisma } from '@/lib/prisma';
 import { verifyToken } from '@/utils/auth';
 import { NextResponse } from 'next/server';
 
+// Api to fetch a single blog post
+export async function GET(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const verificationResult = await verifyToken(request);
+    if (!verificationResult.success) {
+      return NextResponse.json(
+        { message: verificationResult.errorMessage },
+        { status: 401 }
+      );
+    }
+
+    if (!params.id) {
+      NextResponse.json({ error: 'Blog id is required' }, { status: 400 });
+    }
+
+    const post = await prisma.blog.findUnique({
+      where: {
+        id: params.id,
+        authorId: verificationResult.data?.userId,
+      },
+      select: {
+        id: true,
+        title: true,
+        content: true,
+        createdAt: true,
+        author: {
+          select: {
+            firstName: true,
+            lastName: true,
+          },
+        },
+        collaborators: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+        _count: {
+          select: {
+            like: true,
+          },
+        },
+      },
+    });
+    return NextResponse.json(post);
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json(
+      { message: 'Internal Server Error' },
+      { status: 500 }
+    );
+  }
+}
+
 export async function PUT(
   request: Request,
   { params }: { params: { id: string } }
@@ -34,7 +92,9 @@ export async function PUT(
       );
     }
 
-    const existingCollaboratorIds = blogPost.collaborators.map((collaborator) => collaborator.id); // Current collaborator IDs
+    const existingCollaboratorIds = blogPost.collaborators.map(
+      (collaborator) => collaborator.id
+    ); // Current collaborator IDs
     const newCollaboratorIds = body.collaborators || []; // New collaborators from request body
 
     // Determine collaborators to connect and disconnect
