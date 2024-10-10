@@ -30,6 +30,7 @@ export async function GET(
         id: true,
         title: true,
         content: true,
+        image: true,
         createdAt: true,
         author: {
           select: {

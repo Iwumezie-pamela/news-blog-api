@@ -37,6 +37,7 @@ model Blog {
     id            String         @id @default(cuid())
     title         String
     content       String
+    image         String
     authorId      String
     author        User           @relation(fields: [authorId], references: [id])
     like          Like[]
@@ -65,11 +66,11 @@ model Category {
 }
 
 model Notification {
-    id      String  @id @default(cuid())
-    message String
-    User    User?   @relation(fields: [userId], references: [id])
-    userId  String?
-    Blog    Blog?   @relation(fields: [blogId], references: [id])
-    blogId  String?
+    id        String   @id @default(cuid())
+    message   String
+    User      User?    @relation(fields: [userId], references: [id])
+    userId    String?
+    Blog      Blog?    @relation(fields: [blogId], references: [id])
+    blogId    String?
     createdAt DateTime @default(now())
 }

@@ -96,7 +96,7 @@ export async function POST(req: Request) {
     // Return the newly created blog post
     return NextResponse.json(newBlog, { status: 201 });
   } catch (error) {
-    console.error('Error creating blog post:', error);
+    console.log('Error creating blog post:', error);
     return NextResponse.json(
       { message: 'An internal server error occurred. Please try again later.' },
       { status: 500 }
@@ -127,6 +127,7 @@ export async function GET(req: Request) {
         id: true,
         title: true,
         content: true,
+        image: true,
         createdAt: true,
         author: {
           select: {
@@ -159,6 +160,7 @@ export async function GET(req: Request) {
       id: post.id,
       title: post.title,
       content: post.content,
+      image: post.image,
       createdAt: post.createdAt,
       author: `${post.author.firstName} ${post.author.lastName}`,
       like: post._count.like, // Count likes for each post
