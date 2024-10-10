@@ -71,6 +71,23 @@ export async function POST(request: Request) {
         },
       });
 
+      // Create a notification for the author of the blog post
+      const liker = await prisma.user.findUnique({
+        where: {
+          id: verificationResult.data?.userId as string,
+        },
+      });
+
+      if (liker) {
+        await prisma.notification.create({
+          data: {
+            message: `${liker.firstName} just liked your blog: "${blogPostExist.title}"`,
+            userId: blogPostExist.authorId,
+            blogId: blogPostExist.id,
+          },
+        });
+      }
+
       return NextResponse.json(
         { message: 'Post liked successfully.' },
         { status: 201 }
@@ -99,7 +116,7 @@ export async function GET(request: Request) {
       where: {
         authorId: verificationResult.data?.userId,
       },
-      select: {
+      include: {
         blog: {
           select: {
             id: true,
