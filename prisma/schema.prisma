@@ -14,34 +14,38 @@ datasource db {
 }
 
 model User {
-    id             String    @id @default(cuid())
+    id             String         @id @default(cuid())
     // userId      String?   @unique
-    email          String    @unique
+    email          String         @unique
     firstName      String?
     lastName       String?
-    accessToken    String?   @db.LongText
+    accessToken    String?        @db.LongText
     password       String
     expiresIn      DateTime?
     phoneNumber    String?
-    userName       String? 
+    userName       String?
     image          String?
     blogs          Blog[]
     like           Like[]
-    collaborations Blog[]    @relation("BlogCollaborators")
-    createdAt      DateTime  @default(now())
-    updatedAt      DateTime  @updatedAt
+    collaborations Blog[]         @relation("BlogCollaborators")
+    notifications  Notification[]
+    createdAt      DateTime       @default(now())
+    updatedAt      DateTime       @updatedAt
 }
 
 model Blog {
-    id            String   @id @default(cuid())
+    id            String         @id @default(cuid())
     title         String
     content       String
     authorId      String
-    author        User     @relation(fields: [authorId], references: [id])
+    author        User           @relation(fields: [authorId], references: [id])
     like          Like[]
-    collaborators User[]   @relation("BlogCollaborators")
-    createdAt     DateTime @default(now())
-    updatedAt     DateTime @updatedAt
+    collaborators User[]         @relation("BlogCollaborators")
+    categoryId    String
+    category      Category       @relation(fields: [categoryId], references: [id])
+    notifications Notification[]
+    createdAt     DateTime       @default(now())
+    updatedAt     DateTime       @updatedAt
 }
 
 model Like {
@@ -52,4 +56,20 @@ model Like {
     blog     Blog   @relation(fields: [blogId], references: [id])
 
     @@unique([authorId, blogId]) // Ensure a user can only like a post once
+}
+
+model Category {
+    id    String @id @default(cuid())
+    name  String
+    blogs Blog[]
+}
+
+model Notification {
+    id      String  @id @default(cuid())
+    message String
+    User    User?   @relation(fields: [userId], references: [id])
+    userId  String?
+    Blog    Blog?   @relation(fields: [blogId], references: [id])
+    blogId  String?
+    createdAt DateTime @default(now())
 }
