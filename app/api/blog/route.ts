@@ -13,16 +13,19 @@ export async function POST(req: Request) {
      * If user is not a string, it means the token is valid, and we can continue processing the request normally (e.g., creating the blog post with user.userId).
      */
     if (!verificationResult.success) {
-      return NextResponse.json({ message: verificationResult.errorMessage }, { status: 401 });
+      return NextResponse.json(
+        { message: verificationResult.errorMessage },
+        { status: 401 }
+      );
     }
 
     // Parse and validate the request body
     const body: BlogRequest = await req.json();
 
     // Check if title and content are provided
-    if (!body.title || !body.content) {
+    if (!body.title || !body.content || !body.categoryId) {
       return NextResponse.json(
-        { message: 'Title and content are required fields.' },
+        { message: 'Title, content and category are required fields.' },
         { status: 400 }
       );
     }
@@ -44,6 +47,20 @@ export async function POST(req: Request) {
       );
     }
 
+    // Verify category exists
+    const existingCategory = await prisma.category.findUnique({
+      where: {
+        id: body.categoryId,
+      },
+    });
+
+    if (!existingCategory) {
+      return NextResponse.json(
+        { message: 'The selected category does not exist.' },
+        { status: 400 }
+      );
+    }
+
     // Add the collaborator IDs if any are provided
     const collaborators = body.collaborators
       ? body.collaborators.map((id) => ({ id })) // Wrap each collaborator ID in an object
@@ -54,6 +71,7 @@ export async function POST(req: Request) {
       data: {
         ...body,
         authorId: verificationResult.data?.userId as string,
+        categoryId: body.categoryId,
         collaborators: {
           connect: collaborators,
         },
@@ -65,6 +83,11 @@ export async function POST(req: Request) {
             firstName: true,
             lastName: true,
             email: true,
+          },
+        },
+        category: {
+          select: {
+            name: true,
           },
         },
       },
@@ -97,9 +120,9 @@ export async function GET(req: Request) {
     }
 
     const posts = await prisma.blog.findMany({
-      where: {
-        authorId: verificationResult.data?.userId,
-      },
+      //   where: {
+      //     authorId: verificationResult.data?.userId,
+      //   },
       select: {
         id: true,
         title: true,
@@ -119,6 +142,11 @@ export async function GET(req: Request) {
             email: true,
           },
         },
+        category: {
+          select: {
+            name: true,
+          },
+        },
         _count: {
           select: {
             like: true,
@@ -127,7 +155,7 @@ export async function GET(req: Request) {
       },
     });
 
-    const postsWithLikeCount = posts.map((post) => ({
+    const postsResponse = posts.map((post) => ({
       id: post.id,
       title: post.title,
       content: post.content,
@@ -135,9 +163,10 @@ export async function GET(req: Request) {
       author: `${post.author.firstName} ${post.author.lastName}`,
       like: post._count.like, // Count likes for each post
       collaborators: post.collaborators,
+      category: post.category,
     }));
 
-    return NextResponse.json(postsWithLikeCount);
+    return NextResponse.json(postsResponse);
   } catch (error) {
     console.error('Error retrieving blog posts:', error);
     return NextResponse.json(
