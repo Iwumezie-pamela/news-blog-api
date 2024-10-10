@@ -9,12 +9,12 @@ export async function POST(request: Request) {
     // Verify the access token and extract user data
     const verificationResult = await verifyToken(request);
 
-   if (!verificationResult.success) {
-     return NextResponse.json(
-       { message: verificationResult.errorMessage },
-       { status: 401 }
-     );
-   }
+    if (!verificationResult.success) {
+      return NextResponse.json(
+        { message: verificationResult.errorMessage },
+        { status: 401 }
+      );
+    }
 
     // get blog post id from url
     const { searchParams } = new URL(request.url);
@@ -78,6 +78,48 @@ export async function POST(request: Request) {
     }
   } catch (error) {
     console.error('Error liking post:', error);
+    return NextResponse.json(
+      { message: 'An internal server error occurred. Please try again later.' },
+      { status: 500 }
+    );
+  }
+}
+
+// api to fetch all liked posts
+export async function GET(request: Request) {
+  try {
+    const verificationResult = await verifyToken(request);
+    if (!verificationResult.success) {
+      return NextResponse.json(
+        { message: verificationResult.errorMessage },
+        { status: 401 }
+      );
+    }
+    const likedPosts = await prisma.like.findMany({
+      where: {
+        authorId: verificationResult.data?.userId,
+      },
+      select: {
+        blog: {
+          select: {
+            id: true,
+            title: true,
+            content: true,
+            createdAt: true,
+            author: {
+              select: {
+                firstName: true,
+                lastName: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return NextResponse.json(likedPosts);
+  } catch (error) {
+    console.error('Error fetching liked posts:', error);
     return NextResponse.json(
       { message: 'An internal server error occurred. Please try again later.' },
       { status: 500 }

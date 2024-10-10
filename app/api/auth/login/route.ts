@@ -1,20 +1,26 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
+import { LoginRequest } from '@/app/models/ILogin';
 
 export async function POST(req: Request) {
-  const { email, password } = await req.json();
+  const body: LoginRequest = await req.json();
 
-  if (!email || !password) {
+  if ((!body.email && !body.userName) || !body.password) {
     return new Response(
-      JSON.stringify({ message: 'Email and password are required' }),
+      JSON.stringify({ message: 'Email/Username and password are required' }),
       { status: 400 }
     );
   }
 
   try {
-    const user = await prisma.user.findUnique({
-      where: { email },
+    // Determine whether the input is an email or username
+    const isEmail = body.email?.includes('@');
+
+    const user = await prisma.user.findFirst({
+      where: isEmail
+        ? { email: body.email }
+        : { userName: body.userName as string },
     });
 
     if (!user) {
@@ -23,7 +29,7 @@ export async function POST(req: Request) {
       });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
+    const isMatch = await bcrypt.compare(body.password, user.password);
 
     if (!isMatch) {
       return new Response(JSON.stringify({ message: 'Invalid credentials' }), {
