@@ -14,23 +14,24 @@ datasource db {
 }
 
 model User {
-    id             String         @id @default(cuid())
+    id                String                @id @default(cuid())
     // userId      String?   @unique
-    email          String         @unique
-    firstName      String?
-    lastName       String?
-    accessToken    String?        @db.LongText
-    password       String
-    expiresIn      DateTime?
-    phoneNumber    String?
-    userName       String?
-    image          String?
-    blogs          Blog[]
-    like           Like[]
-    collaborations Blog[]         @relation("BlogCollaborators")
-    notifications  Notification[]
-    createdAt      DateTime       @default(now())
-    updatedAt      DateTime       @updatedAt
+    email             String                @unique
+    firstName         String?
+    lastName          String?
+    accessToken       String?               @db.LongText
+    password          String
+    expiresIn         DateTime?
+    phoneNumber       String?
+    userName          String?
+    image             String?
+    blogs             Blog[]
+    like              Like[]
+    collaborations    Blog[]                @relation("BlogCollaborators")
+    notifications     Notification[]
+    checkedCategories CategoryLastChecked[]
+    createdAt         DateTime              @default(now())
+    updatedAt         DateTime              @updatedAt
 }
 
 model Blog {
@@ -60,9 +61,20 @@ model Like {
 }
 
 model Category {
-    id    String @id @default(cuid())
-    name  String
-    blogs Blog[]
+    id          String               @id @default(cuid())
+    name        String
+    blogs       Blog[]
+    lastChecked CategoryLastChecked?
+    createdAt   DateTime             @default(now())
+}
+
+model CategoryLastChecked {
+    id         String   @id @default(cuid())
+    authorId   String
+    author     User     @relation(fields: [authorId], references: [id])
+    categoryId String   @unique
+    category   Category @relation(fields: [categoryId], references: [id])
+    date       DateTime @default(now())
 }
 
 model Notification {

@@ -32,12 +32,12 @@ export async function GET(request: Request) {
           },
         },
       },
-      take: 10, // Limit to the top 10 popular blogs
+      //   take: 10,
     });
 
     return NextResponse.json(popularBlogs);
   } catch (error) {
-    console.error('Error fetching popular blogs:', error);
+    console.log('Error fetching popular blogs:', error);
     return NextResponse.json(
       { message: 'An internal server error occurred. Please try again later.' },
       { status: 500 }

@@ -54,7 +54,13 @@ export async function GET(request: Request) {
       );
     }
 
-    const categories = await prisma.category.findMany();
+    const categories = await prisma.category.findMany({
+      select: {
+        blogs: true,
+      },
+    });
+
+
     return new Response(JSON.stringify(categories), { status: 200 });
   } catch (error) {
     console.log({ error });

@@ -72,9 +72,12 @@ export async function POST(req: Request) {
         ...body,
         authorId: verificationResult.data?.userId as string,
         categoryId: body.categoryId,
-        collaborators: {
-          connect: collaborators,
-        },
+        collaborators:
+          collaborators.length > 0
+            ? {
+                connect: collaborators,
+              }
+            : {},
       },
       include: {
         collaborators: {
@@ -87,13 +90,21 @@ export async function POST(req: Request) {
         },
         category: {
           select: {
+            id: true,
             name: true,
           },
         },
       },
     });
 
-    // Return the newly created blog post
+    await prisma.categoryLastChecked.create({
+      data: {
+        authorId: verificationResult.data?.userId as string,
+        categoryId: body.categoryId,
+        date: new Date(),
+      },
+    });
+
     return NextResponse.json(newBlog, { status: 201 });
   } catch (error) {
     console.log('Error creating blog post:', error);
